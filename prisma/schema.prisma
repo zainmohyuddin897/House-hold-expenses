@@ -31,6 +31,7 @@ model User {
   sessions                   Session[]
   passwordResetTokens        PasswordResetToken[]
   emailVerificationTokens    EmailVerificationToken[]
+  householdInvitationsSent   HouseholdInvitation[] @relation("HouseholdInvitationsSent")
 }
 
 model Household {
@@ -42,6 +43,7 @@ model Household {
   transactions Transaction[]
   accounts     Account[]
   sharedExpenses SharedExpense[]
+  invitations HouseholdInvitation[]
 }
 
 model HouseholdMember {
@@ -304,4 +306,21 @@ model EmailVerificationToken {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, expiresAt])
+}
+
+model HouseholdInvitation {
+  id            String    @id @default(cuid())
+  householdId   String
+  inviterUserId String
+  email         String
+  role          String    @default("member")
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  household     Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  inviter       User      @relation("HouseholdInvitationsSent", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  @@index([householdId, email])
+  @@index([householdId, acceptedAt])
+  @@index([expiresAt])
 }
