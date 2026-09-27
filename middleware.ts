@@ -1,0 +1,3 @@
+import { NextRequest, NextResponse } from "next/server";
+export function middleware(request: NextRequest){const path=request.nextUrl.pathname;const hasSession=Boolean(request.cookies.get("homebudget_session")?.value);const authPage=path==="/login"||path==="/register";if(authPage&&hasSession)return NextResponse.redirect(new URL("/",request.url));if(path.startsWith("/dashboard")&&!hasSession)return NextResponse.redirect(new URL("/login",request.url));return NextResponse.next();}
+export const config={matcher:["/login","/register","/dashboard/:path*"]};
