@@ -1,0 +1,7 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+const schema=z.object({name:z.string().trim().min(1).max(60),type:z.enum(["income","expense"]),icon:z.string().max(20).optional().nullable(),color:z.string().max(20).optional().nullable()});
+export async function GET(){try{const user=await requireUser();return NextResponse.json({items:await db.category.findMany({where:{userId:user.id},orderBy:{name:"asc"}})});}catch(e){if(e instanceof Error&&e.message==="UNAUTHORIZED")return NextResponse.json({error:"Unauthorized"},{status:401});return NextResponse.json({error:"Unable to load categories."},{status:500});}}
+export async function POST(request:Request){try{const user=await requireUser();const input=schema.parse(await request.json());const item=await db.category.create({data:{userId:user.id,...input}});return NextResponse.json(item,{status:201});}catch(e){if(e instanceof z.ZodError)return NextResponse.json({error:"Invalid category."},{status:400});if(e instanceof Error&&e.message==="UNAUTHORIZED")return NextResponse.json({error:"Unauthorized"},{status:401});return NextResponse.json({error:"Category already exists or could not be created."},{status:400});}}
