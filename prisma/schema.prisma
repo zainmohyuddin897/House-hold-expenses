@@ -108,6 +108,7 @@ model Transaction {
   household   Household?  @relation(fields: [householdId], references: [id], onDelete: SetNull)
   account     Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
   category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  receipts    Receipt[]
   @@index([userId, date])
   @@index([householdId, date])
   @@index([accountId, date])
@@ -266,6 +267,7 @@ model Receipt {
   mimeType      String
   sizeBytes     Int
   ocrText       String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   createdAt     DateTime    @default(now())
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, createdAt])
