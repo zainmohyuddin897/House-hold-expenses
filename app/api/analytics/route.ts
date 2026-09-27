@@ -1,0 +1,1 @@
+import{NextResponse}from"next/server";export async function GET(){return NextResponse.json({ok:true,metrics:{income:0,expenses:0,balance:0,savingsRate:0},message:"Analytics endpoint ready for authenticated database aggregation."})}
