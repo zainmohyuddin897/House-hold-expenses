@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/prisma";
 import { createSession, publicUser } from "@/lib/auth";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -11,6 +12,9 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  const limit = rateLimit(`register:${getClientIp(req)}`, 5, 15 * 60 * 1000);
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter);
+
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid registration details.", details: parsed.error.flatten() }, { status: 400 });
@@ -23,7 +27,7 @@ export async function POST(req: Request) {
 
   const user = await db.$transaction(async (tx) => {
     const created = await tx.user.create({ data: { name, email, passwordHash } });
-    const household = await tx.household.create({ data: { name: `${name}'s Household` } });
+    const household = await tx.household.create({ data: { name: name + "'s Household" } });
     await tx.householdMember.create({ data: { userId: created.id, householdId: household.id, role: "owner" } });
     await tx.account.create({ data: { userId: created.id, householdId: household.id, name: "Cash", type: "cash", currency: "PKR" } });
 
@@ -40,5 +44,6 @@ export async function POST(req: Request) {
   });
 
   await createSession(user.id);
+  await db.auditLog.create({ data: { userId: user.id, action: "REGISTER", entity: "User", entityId: user.id } });
   return NextResponse.json({ ok: true, user: publicUser(user) }, { status: 201 });
 }
