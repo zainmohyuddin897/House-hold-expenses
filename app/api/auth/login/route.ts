@@ -17,6 +17,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid email or password." }, { status: 400 });
+  const accountLimit = rateLimit(`login-account:${parsed.data.email}`, 8, 15 * 60 * 1000);
+  if (!accountLimit.allowed) return rateLimitResponse(accountLimit.retryAfter);
 
   const user = await db.user.findUnique({ where: { email: parsed.data.email } });
   if (!user || !(await bcrypt.compare(parsed.data.password, user.passwordHash))) {
